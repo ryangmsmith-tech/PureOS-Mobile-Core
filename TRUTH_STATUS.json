@@ -1,0 +1,13 @@
+{
+  "project": "PureOS-Mobile-Core",
+  "version": "17.40",
+  "repo_connected": true,
+  "chatgpt_write_access": true,
+  "android_launch_candidate_added": true,
+  "github_actions_workflow_added": true,
+  "apk_build_proven": false,
+  "phone_install_proven": false,
+  "next_step": "Run the GitHub Actions workflow named PureOS Android Debug APK Cloud Build and inspect the artifact or build error.",
+  "intelligence_layer_name": "Pure Intelligence",
+  "command_layer_name": "PureLang"
+}
