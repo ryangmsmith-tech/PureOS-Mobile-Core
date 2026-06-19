@@ -1,0 +1,21 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.pureos.mobile'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.pureos.mobile'
+        minSdk 23
+        targetSdk 35
+        versionCode 1740
+        versionName '17.40'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
