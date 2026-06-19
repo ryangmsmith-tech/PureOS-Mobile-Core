@@ -1,0 +1,1 @@
+PureOS GitHub connector write test passed.
