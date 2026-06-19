@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.PureOS.MobileCore" parent="android:style/Theme.Material.NoActionBar">
+    <style name="Theme.PureOS.MobileCore" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:windowNoTitle">true</item>
         <item name="android:fontFamily">sans</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">@color/pureos_space</item>
         <item name="android:navigationBarColor">@color/pureos_space</item>
         <item name="android:windowActionModeOverlay">true</item>
+        <item name="colorPrimary">@color/pureos_cyan</item>
+        <item name="colorPrimaryVariant">@color/pureos_space</item>
+        <item name="colorSecondary">@color/pureos_gold</item>
     </style>
 </resources>
