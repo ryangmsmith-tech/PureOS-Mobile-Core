@@ -4,4 +4,6 @@
     <color name="pureos_panel">#121C2F</color>
     <color name="pureos_cyan">#91EBFF</color>
     <color name="pureos_gold">#FFD76A</color>
+    <color name="pureos_text">#E9F8FF</color>
+    <color name="pureos_soft">#B8C8D4</color>
 </resources>
