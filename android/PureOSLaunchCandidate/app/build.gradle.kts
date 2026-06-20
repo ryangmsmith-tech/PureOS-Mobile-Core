@@ -3,15 +3,15 @@ plugins {
 }
 
 android {
-    namespace = "com.pureos.mobilecore.v1744"
+    namespace = "com.pureos.mobilecore.v1746"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.pureos.mobilecore.v1744"
+        applicationId = "com.pureos.mobilecore.v1746"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1744
-        versionName = "17.44"
+        versionCode = 1746
+        versionName = "17.46"
     }
 
     buildTypes {
