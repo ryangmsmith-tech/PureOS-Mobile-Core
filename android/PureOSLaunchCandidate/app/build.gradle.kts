@@ -3,15 +3,15 @@ plugins {
 }
 
 android {
-    namespace = "com.pureos.mobilecore.v1746"
+    namespace = "com.pureos.mobilecore.v1747"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.pureos.mobilecore.v1746"
+        applicationId = "com.pureos.mobilecore.v1747"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1746
-        versionName = "17.46"
+        versionCode = 1747
+        versionName = "17.47"
     }
 
     buildTypes {
@@ -24,7 +24,7 @@ android {
         }
         debug {
             isDebuggable = true
-            applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("debug")
             versionNameSuffix = "-debug"
         }
     }
