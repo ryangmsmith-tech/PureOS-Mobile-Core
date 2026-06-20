@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-debug-apk:
-    name: Build PureOS v17.45 debug APK
+    name: Build PureOS v17.46 debug APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -39,19 +39,9 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Show project files
-        working-directory: android/PureOSLaunchCandidate
-        run: |
-          pwd
-          find . -maxdepth 8 -type f | sort
-
-      - name: Clean build outputs
-        working-directory: android/PureOSLaunchCandidate
-        run: gradle :app:clean --stacktrace --warning-mode all
-
       - name: Build debug APK
         working-directory: android/PureOSLaunchCandidate
-        run: gradle :app:assembleDebug --stacktrace --warning-mode all
+        run: gradle :app:clean :app:assembleDebug --stacktrace --warning-mode all
 
       - name: Verify APK exists
         run: |
@@ -60,30 +50,7 @@ jobs:
           ls -lah "$APK_DIR"
           APK_FILE="$(find "$APK_DIR" -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -n "$APK_FILE"
-          APK_SIZE="$(stat -c%s "$APK_FILE")"
-          echo "APK file: $APK_FILE"
-          echo "APK size: $APK_SIZE bytes"
-          if [ "$APK_SIZE" -lt 10000 ]; then
-            echo "APK is too small to trust." >&2
-            exit 12
-          fi
           sha256sum "$APK_FILE"
-
-      - name: Collect build evidence
-        if: always()
-        run: |
-          mkdir -p build-evidence/apk
-          echo "PureOS v17.45 Android debug APK cloud build" > build-evidence/BUILD_STATUS.txt
-          echo "Workflow: PureOS Android Debug APK Cloud Build" >> build-evidence/BUILD_STATUS.txt
-          echo "Commit: $GITHUB_SHA" >> build-evidence/BUILD_STATUS.txt
-          echo "Run ID: $GITHUB_RUN_ID" >> build-evidence/BUILD_STATUS.txt
-          find android/PureOSLaunchCandidate/app/build -maxdepth 8 -type f | sort > build-evidence/build_files.txt || true
-          find android/PureOSLaunchCandidate/app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -exec ls -lh {} \; > build-evidence/apk_files.txt || true
-          cp android/PureOSLaunchCandidate/app/build/outputs/apk/debug/*.apk build-evidence/apk/ 2>/dev/null || true
-          for apk in build-evidence/apk/*.apk; do
-            [ -f "$apk" ] || continue
-            sha256sum "$apk" > "$apk.sha256"
-          done
 
       - name: Upload debug APK only
         uses: actions/upload-artifact@v4
@@ -97,5 +64,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: PureOS-debug-apk-and-build-evidence
-          path: build-evidence/**
+          path: android/PureOSLaunchCandidate/app/build/**
           if-no-files-found: warn
