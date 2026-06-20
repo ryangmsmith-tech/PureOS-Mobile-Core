@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-debug-apk:
-    name: Build PureOS v17.42 debug APK
+    name: Build PureOS v17.43 debug APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -73,7 +73,7 @@ jobs:
         if: always()
         run: |
           mkdir -p build-evidence/apk
-          echo "PureOS v17.42 Android debug APK cloud build" > build-evidence/BUILD_STATUS.txt
+          echo "PureOS v17.43 Android debug APK cloud build" > build-evidence/BUILD_STATUS.txt
           echo "Workflow: PureOS Android Debug APK Cloud Build" >> build-evidence/BUILD_STATUS.txt
           echo "Commit: $GITHUB_SHA" >> build-evidence/BUILD_STATUS.txt
           echo "Run ID: $GITHUB_RUN_ID" >> build-evidence/BUILD_STATUS.txt
