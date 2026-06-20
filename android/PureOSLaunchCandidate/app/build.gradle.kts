@@ -3,15 +3,15 @@ plugins {
 }
 
 android {
-    namespace = "com.pureos.mobilecore.v1743"
+    namespace = "com.pureos.mobilecore.v1744"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.pureos.mobilecore.v1743"
+        applicationId = "com.pureos.mobilecore.v1744"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1743
-        versionName = "17.43"
+        versionCode = 1744
+        versionName = "17.44"
     }
 
     buildTypes {
@@ -33,10 +33,4 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-}
-
-dependencies {
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("com.google.android.material:material:1.12.0")
 }
