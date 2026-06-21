@@ -10,6 +10,14 @@ on:
       - 'native/PureOSNativeRuntimeBootstrap/**'
       - '.github/workflows/pureos_android_debug_build.yml'
       - 'README.md'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'android/PureOSLaunchCandidate/**'
+      - 'native/PureOSNativeRuntimeBootstrap/**'
+      - '.github/workflows/pureos_android_debug_build.yml'
+      - 'README.md'
 
 permissions:
   contents: read
