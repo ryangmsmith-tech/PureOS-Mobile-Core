@@ -3,15 +3,19 @@ plugins {
 }
 
 android {
-    namespace = "com.pureos.mobilecore.v1747"
+    namespace = "com.pureos.mobilecore.v1748"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.pureos.mobilecore.v1747"
+        applicationId = "com.pureos.mobilecore.v1748"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1747
-        versionName = "17.47"
+        versionCode = 1748
+        versionName = "17.48"
+
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     buildTypes {
@@ -32,5 +36,11 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
     }
 }
