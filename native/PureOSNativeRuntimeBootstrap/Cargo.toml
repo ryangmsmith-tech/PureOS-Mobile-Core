@@ -1,14 +1,15 @@
 [package]
 name = "pureos-native-runtime-bootstrap"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-description = "Pure OS v17.39A native runtime cloud-build bootstrap"
+description = "Pure OS v17.39A native runtime cloud-build and Android ARM64 JNI bootstrap"
 license = "Proprietary"
 publish = false
 
 [lib]
 name = "pureos_native_runtime_bootstrap"
 path = "src/lib.rs"
+crate-type = ["rlib", "cdylib"]
 
 [[bin]]
 name = "pureos-native-runtime-bootstrap"
