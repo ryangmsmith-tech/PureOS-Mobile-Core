@@ -1,20 +1,32 @@
-name: PureOS Android Debug APK Cloud Build
+name: PureOS Android ARM64 Native Debug APK Cloud Build
 
 on:
   workflow_dispatch:
   push:
     branches:
       - main
+      - cloud/android-arm64-v17-48
     paths:
       - 'android/PureOSLaunchCandidate/**'
+      - 'native/PureOSNativeRuntimeBootstrap/**'
       - '.github/workflows/pureos_android_debug_build.yml'
       - 'README.md'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'android/PureOSLaunchCandidate/**'
+      - 'native/PureOSNativeRuntimeBootstrap/**'
+      - '.github/workflows/pureos_android_debug_build.yml'
+
+permissions:
+  contents: read
 
 jobs:
   build-debug-apk:
-    name: Build PureOS v17.47 debug APK
+    name: Build PureOS v17.48 ARM64 native debug APK
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
@@ -29,10 +41,49 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Accept Android licenses and install SDK packages
+      - name: Accept Android licenses and install SDK plus NDK
         run: |
           yes | sdkmanager --licenses || true
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.0.12077973"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+          components: rustfmt, clippy
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Test native runtime contract on host
+        working-directory: native/PureOSNativeRuntimeBootstrap
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test --all-targets --verbose
+
+      - name: Build Rust JNI library for Android ARM64
+        working-directory: native/PureOSNativeRuntimeBootstrap
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
+        run: |
+          rm -rf ../../android/PureOSLaunchCandidate/app/src/main/jniLibs
+          cargo ndk \
+            --target arm64-v8a \
+            --output-dir ../../android/PureOSLaunchCandidate/app/src/main/jniLibs \
+            build --release
+
+      - name: Verify ARM64 native library
+        run: |
+          SO_FILE="android/PureOSLaunchCandidate/app/src/main/jniLibs/arm64-v8a/libpureos_native_runtime_bootstrap.so"
+          test -f "$SO_FILE"
+          ls -lah "$SO_FILE"
+          file "$SO_FILE"
+          sha256sum "$SO_FILE"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -43,26 +94,42 @@ jobs:
         working-directory: android/PureOSLaunchCandidate
         run: gradle :app:clean :app:assembleDebug --stacktrace --warning-mode all
 
-      - name: Verify APK exists
+      - name: Verify APK and packaged ARM64 library
         run: |
           APK_DIR="android/PureOSLaunchCandidate/app/build/outputs/apk/debug"
-          echo "Checking APK output directory: $APK_DIR"
-          ls -lah "$APK_DIR"
           APK_FILE="$(find "$APK_DIR" -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -n "$APK_FILE"
-          sha256sum "$APK_FILE"
+          test "$(stat -c%s "$APK_FILE")" -gt 100000
+          unzip -l "$APK_FILE" | tee apk_contents.txt
+          grep -q 'lib/arm64-v8a/libpureos_native_runtime_bootstrap.so' apk_contents.txt
+          ls -lah "$APK_FILE"
+          sha256sum "$APK_FILE" | tee apk_sha256.txt
 
-      - name: Upload debug APK only
+      - name: Create build evidence packet
+        if: always()
+        run: |
+          mkdir -p build-evidence
+          cp native/PureOSNativeRuntimeBootstrap/runtime_manifest.json build-evidence/
+          cp native/PureOSNativeRuntimeBootstrap/Cargo.toml build-evidence/
+          cp apk_contents.txt build-evidence/ 2>/dev/null || true
+          cp apk_sha256.txt build-evidence/ 2>/dev/null || true
+          if [ -f android/PureOSLaunchCandidate/app/src/main/jniLibs/arm64-v8a/libpureos_native_runtime_bootstrap.so ]; then
+            sha256sum android/PureOSLaunchCandidate/app/src/main/jniLibs/arm64-v8a/libpureos_native_runtime_bootstrap.so > build-evidence/native_library_sha256.txt
+          fi
+
+      - name: Upload installable Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: PureOS-debug-apk
+          name: PureOS-v17.48-android-arm64-native-debug-apk
           path: android/PureOSLaunchCandidate/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          retention-days: 30
 
-      - name: Upload APK and build evidence
+      - name: Upload Android native build evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: PureOS-debug-apk-and-build-evidence
-          path: android/PureOSLaunchCandidate/app/build/**
+          name: PureOS-v17.48-android-arm64-native-build-evidence
+          path: build-evidence/**
           if-no-files-found: warn
+          retention-days: 30
