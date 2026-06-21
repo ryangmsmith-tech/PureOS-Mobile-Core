@@ -1,0 +1,21 @@
+[package]
+name = "pureos-native-runtime-bootstrap"
+version = "0.1.0"
+edition = "2021"
+description = "Pure OS v17.39A native runtime cloud-build bootstrap"
+license = "Proprietary"
+publish = false
+
+[lib]
+name = "pureos_native_runtime_bootstrap"
+path = "src/lib.rs"
+
+[[bin]]
+name = "pureos-native-runtime-bootstrap"
+path = "src/main.rs"
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1
+panic = "abort"
