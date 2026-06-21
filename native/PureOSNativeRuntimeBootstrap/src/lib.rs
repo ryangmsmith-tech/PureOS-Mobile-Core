@@ -1,4 +1,4 @@
-#![forbid(unsafe_code)]
+#![deny(unsafe_op_in_unsafe_fn)]
 
 use core::ffi::c_void;
 
@@ -130,6 +130,7 @@ fn contract_status_code() -> i32 {
 /// Android JNI entry point used by the v17.48 launch candidate.
 ///
 /// The raw pointers are opaque JNI handles and are intentionally not dereferenced.
+#[allow(non_snake_case)]
 #[no_mangle]
 pub extern "system" fn Java_com_pureos_mobilecore_v1748_MainActivity_nativeContractStatus(
     _env: *mut c_void,
@@ -139,6 +140,7 @@ pub extern "system" fn Java_com_pureos_mobilecore_v1748_MainActivity_nativeContr
 }
 
 /// Returns the number of merged Gold Ocean City first-slice sections.
+#[allow(non_snake_case)]
 #[no_mangle]
 pub extern "system" fn Java_com_pureos_mobilecore_v1748_MainActivity_nativeGoldOceanSections(
     _env: *mut c_void,
