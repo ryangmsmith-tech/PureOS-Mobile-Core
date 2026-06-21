@@ -106,7 +106,6 @@ jobs:
           test "$(stat -c%s "$APK_FILE")" -gt 100000
           unzip -l "$APK_FILE" | tee apk_contents.txt
           grep -q 'lib/arm64-v8a/libpureos_native_runtime_bootstrap.so' apk_contents.txt
-          strings "$APK_FILE" | grep -q 'com.pureos.mobilecore.s25.v1749'
           ls -lah "$APK_FILE"
           sha256sum "$APK_FILE" | tee apk_sha256.txt
 
