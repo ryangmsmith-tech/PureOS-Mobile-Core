@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+use core::ffi::c_void;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SectionStatus {
     Merged,
@@ -100,6 +102,7 @@ impl RuntimeContract {
                 "  \"pure_intelligence_runtime_version\": \"{}\",\n",
                 "  \"aether_lab_version\": \"{}\",\n",
                 "  \"cloud_native_bootstrap_compiled\": true,\n",
+                "  \"android_arm64_jni_enabled\": true,\n",
                 "  \"native_gpu_frame_produced\": false,\n",
                 "  \"desktop_window_presented\": false,\n",
                 "  \"live_vehicle_physics_executed\": false,\n",
@@ -114,6 +117,34 @@ impl RuntimeContract {
             self.aether_lab_version,
         )
     }
+}
+
+fn contract_status_code() -> i32 {
+    if RuntimeContract::v17_39a().validate().is_ok() {
+        1
+    } else {
+        0
+    }
+}
+
+/// Android JNI entry point used by the v17.48 launch candidate.
+///
+/// The raw pointers are opaque JNI handles and are intentionally not dereferenced.
+#[no_mangle]
+pub extern "system" fn Java_com_pureos_mobilecore_v1748_MainActivity_nativeContractStatus(
+    _env: *mut c_void,
+    _class: *mut c_void,
+) -> i32 {
+    contract_status_code()
+}
+
+/// Returns the number of merged Gold Ocean City first-slice sections.
+#[no_mangle]
+pub extern "system" fn Java_com_pureos_mobilecore_v1748_MainActivity_nativeGoldOceanSections(
+    _env: *mut c_void,
+    _class: *mut c_void,
+) -> i32 {
+    6
 }
 
 #[cfg(test)]
@@ -148,5 +179,10 @@ mod tests {
         assert!(!contract.truth.live_vehicle_physics_executed);
         assert!(!contract.truth.headset_tested);
         assert!(!contract.truth.production_runtime_deployed);
+    }
+
+    #[test]
+    fn android_contract_status_is_ready() {
+        assert_eq!(contract_status_code(), 1);
     }
 }
