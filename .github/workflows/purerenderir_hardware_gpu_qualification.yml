@@ -1,0 +1,97 @@
+name: PureRenderIR v0.12 Physical Hardware GPU Qualification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hardware-gpu:
+    name: Qualify physical Vulkan GPU and window surface
+    runs-on: [self-hosted, linux, x64, gpu, vulkan]
+    timeout-minutes: 45
+    env:
+      WGPU_BACKEND: vulkan
+      PUREOS_VULKAN_ICD: ${{ vars.PUREOS_VULKAN_ICD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Verify desktop session and Vulkan tools
+        run: |
+          test -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" || {
+            echo 'A live X11 or Wayland desktop session is required.' >&2
+            exit 1
+          }
+          command -v vulkaninfo
+          command -v python3
+          mkdir -p native/PureRenderIRWindowPresentation/dist
+          python3 native/PureRenderIRHardwareQualification/hardware_gpu_qualification.py \
+            environment \
+            native/PureRenderIRWindowPresentation/dist/hardware_runner_environment.json
+
+      - name: Select non-software Vulkan ICD
+        run: |
+          ICD="${PUREOS_VULKAN_ICD:-}"
+          if [ -z "$ICD" ]; then
+            ICD="$(python3 native/PureRenderIRHardwareQualification/hardware_gpu_qualification.py \
+              select-icd /usr/share/vulkan/icd.d)"
+          fi
+          test -f "$ICD"
+          echo "VK_ICD_FILENAMES=$ICD" >> "$GITHUB_ENV"
+          printf '%s\n' "$ICD" | tee native/PureRenderIRWindowPresentation/dist/selected_vulkan_icd.txt
+
+      - name: Prove hardware Vulkan adapter admission
+        run: |
+          vulkaninfo --summary | tee native/PureRenderIRWindowPresentation/dist/vulkaninfo_hardware_summary.txt
+          if grep -Eiq 'deviceName[^:]*:.*(llvmpipe|lavapipe|swiftshader)|deviceType[^:]*:.*CPU' \
+            native/PureRenderIRWindowPresentation/dist/vulkaninfo_hardware_summary.txt; then
+            echo 'Software Vulkan adapter detected; hardware qualification denied.' >&2
+            exit 1
+          fi
+          grep -E 'deviceName|deviceType|driverName|driverInfo' \
+            native/PureRenderIRWindowPresentation/dist/vulkaninfo_hardware_summary.txt || true
+
+      - name: Validate and build window runtime
+        working-directory: native/PureRenderIRWindowPresentation
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test --all-targets --verbose
+          cargo build --release --verbose
+
+      - name: Present Gold Ocean City through hardware Vulkan
+        working-directory: native/PureRenderIRWindowPresentation
+        run: |
+          env PUREOS_AUTOMATION=1 cargo run --release -- dist
+          cp target/release/purerenderir-window-presentation dist/
+
+      - name: Validate hardware GPU receipt
+        run: |
+          python3 native/PureRenderIRHardwareQualification/hardware_gpu_qualification.py \
+            validate \
+            native/PureRenderIRWindowPresentation/dist/window_presentation_receipt.json \
+            native/PureRenderIRWindowPresentation/dist/hardware_gpu_qualification_receipt.json
+          sha256sum \
+            native/PureRenderIRWindowPresentation/dist/gold_ocean_city_window_presentation.png \
+            native/PureRenderIRWindowPresentation/dist/window_presentation_receipt.json \
+            native/PureRenderIRWindowPresentation/dist/hardware_gpu_qualification_receipt.json \
+            native/PureRenderIRWindowPresentation/dist/adapter_report.json \
+            native/PureRenderIRWindowPresentation/dist/purerenderir-window-presentation \
+            > native/PureRenderIRWindowPresentation/dist/HARDWARE_SHA256SUMS.txt
+          cat native/PureRenderIRWindowPresentation/dist/hardware_gpu_qualification_receipt.json
+
+      - name: Upload hardware GPU qualification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PureRenderIR-v0.12-physical-hardware-gpu-qualification
+          path: native/PureRenderIRWindowPresentation/dist/**
+          if-no-files-found: error
+          retention-days: 30
