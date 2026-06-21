@@ -94,7 +94,9 @@ jobs:
 
       - name: Build clean-install debug APK
         working-directory: android/PureOSLaunchCandidate
-        run: gradle :appv1749:clean :appv1749:assembleDebug --stacktrace --warning-mode all
+        run: |
+          set -o pipefail
+          gradle :appv1749:clean :appv1749:assembleDebug --stacktrace --warning-mode all 2>&1 | tee ../../gradle_build.log
 
       - name: Verify clean package and packaged ARM64 library
         run: |
@@ -114,6 +116,7 @@ jobs:
           mkdir -p build-evidence
           cp native/PureOSNativeRuntimeBootstrap/runtime_manifest.json build-evidence/
           cp native/PureOSNativeRuntimeBootstrap/Cargo.toml build-evidence/
+          cp gradle_build.log build-evidence/ 2>/dev/null || true
           cp apk_contents.txt build-evidence/ 2>/dev/null || true
           cp apk_sha256.txt build-evidence/ 2>/dev/null || true
           cp native_program_headers.txt build-evidence/ 2>/dev/null || true
