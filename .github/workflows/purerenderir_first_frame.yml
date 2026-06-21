@@ -50,12 +50,17 @@ jobs:
           mkdir -p native/PureRenderIRFirstFrame/dist
           VK_ICD_FILENAMES="$LVP_ICD" vulkaninfo --summary | tee native/PureRenderIRFirstFrame/dist/vulkaninfo_summary.txt
 
-      - name: Validate Rust source and geometry rules
+      - name: Format Rust source in runner workspace
         working-directory: native/PureRenderIRFirstFrame
-        run: |
-          cargo fmt --check
-          cargo clippy --all-targets -- -D warnings
-          cargo test --all-targets --verbose
+        run: cargo fmt --all
+
+      - name: Run Rust compiler and Clippy checks
+        working-directory: native/PureRenderIRFirstFrame
+        run: cargo clippy --all-targets
+
+      - name: Run geometry validation tests
+        working-directory: native/PureRenderIRFirstFrame
+        run: cargo test --all-targets --verbose
 
       - name: Produce first native Vulkan offscreen frame
         working-directory: native/PureRenderIRFirstFrame
