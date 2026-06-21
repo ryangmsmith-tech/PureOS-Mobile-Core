@@ -1,0 +1,88 @@
+name: PureOS Native Runtime Cloud Build v17.39A
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - cloud/native-runtime-v17-39a
+    paths:
+      - 'native/PureOSNativeRuntimeBootstrap/**'
+      - '.github/workflows/pureos_native_runtime_cloud_build.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'native/PureOSNativeRuntimeBootstrap/**'
+      - '.github/workflows/pureos_native_runtime_cloud_build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-native-bootstrap:
+    name: Build native Rust bootstrap
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: native/PureOSNativeRuntimeBootstrap
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Show toolchain versions
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run tests
+        run: cargo test --all-targets --verbose
+
+      - name: Build release executable
+        run: cargo build --release --verbose
+
+      - name: Generate native runtime evidence
+        run: |
+          mkdir -p dist
+          ./target/release/pureos-native-runtime-bootstrap dist/pureos_native_runtime_evidence.json
+          cp target/release/pureos-native-runtime-bootstrap dist/
+          cp runtime_manifest.json dist/
+          cp README.md dist/
+          sha256sum dist/pureos-native-runtime-bootstrap dist/pureos_native_runtime_evidence.json dist/runtime_manifest.json > dist/SHA256SUMS.txt
+          ls -lah dist
+          cat dist/pureos_native_runtime_evidence.json
+
+      - name: Upload native bootstrap artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PureOS-v17.39A-native-runtime-bootstrap-linux-x86_64
+          path: native/PureOSNativeRuntimeBootstrap/dist/**
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Cargo build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PureOS-v17.39A-native-runtime-build-evidence
+          path: |
+            native/PureOSNativeRuntimeBootstrap/Cargo.toml
+            native/PureOSNativeRuntimeBootstrap/Cargo.lock
+            native/PureOSNativeRuntimeBootstrap/runtime_manifest.json
+            native/PureOSNativeRuntimeBootstrap/target/release/.fingerprint/**
+          if-no-files-found: warn
+          retention-days: 30

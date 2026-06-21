@@ -1,0 +1,27 @@
+{
+  "package": "PureOSNativeRuntimeBootstrap",
+  "version": "0.1.0",
+  "master_version": "v17.39A",
+  "slice_id": "gold_ocean_city_demo_slice_001",
+  "gold_ocean_city_sections": {
+    "S1": "merged",
+    "S2": "merged",
+    "S3": "merged",
+    "S4": "merged",
+    "S5": "merged",
+    "S6": "merged"
+  },
+  "integrated_foundations": {
+    "pure_render_ir": "v0.8",
+    "pure_intelligence_runtime": "v17.31R",
+    "aether_verification_lab": "v17.38C"
+  },
+  "cloud_build_target": "linux-x86_64-native-bootstrap",
+  "truth_markers": {
+    "native_gpu_frame_produced": false,
+    "desktop_window_presented": false,
+    "live_vehicle_physics_executed": false,
+    "headset_tested": false,
+    "production_runtime_deployed": false
+  }
+}
