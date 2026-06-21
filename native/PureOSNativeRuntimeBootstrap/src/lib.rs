@@ -127,9 +127,6 @@ fn contract_status_code() -> i32 {
     }
 }
 
-/// Android JNI entry point used by the v17.48 launch candidate.
-///
-/// The raw pointers are opaque JNI handles and are intentionally not dereferenced.
 #[allow(non_snake_case)]
 #[no_mangle]
 pub extern "system" fn Java_com_pureos_mobilecore_v1748_MainActivity_nativeContractStatus(
@@ -139,10 +136,27 @@ pub extern "system" fn Java_com_pureos_mobilecore_v1748_MainActivity_nativeContr
     contract_status_code()
 }
 
-/// Returns the number of merged Gold Ocean City first-slice sections.
 #[allow(non_snake_case)]
 #[no_mangle]
 pub extern "system" fn Java_com_pureos_mobilecore_v1748_MainActivity_nativeGoldOceanSections(
+    _env: *mut c_void,
+    _class: *mut c_void,
+) -> i32 {
+    6
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_com_pureos_mobilecore_s25_v1749_MainActivity_nativeContractStatus(
+    _env: *mut c_void,
+    _class: *mut c_void,
+) -> i32 {
+    contract_status_code()
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_com_pureos_mobilecore_s25_v1749_MainActivity_nativeGoldOceanSections(
     _env: *mut c_void,
     _class: *mut c_void,
 ) -> i32 {
