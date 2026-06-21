@@ -1,30 +1,22 @@
-name: PureOS Android ARM64 Native Debug APK Cloud Build
+name: PureOS Android ARM64 Clean-Install APK Cloud Build
 
 on:
   workflow_dispatch:
   push:
     branches:
       - main
-      - cloud/android-arm64-v17-48
     paths:
       - 'android/PureOSLaunchCandidate/**'
       - 'native/PureOSNativeRuntimeBootstrap/**'
       - '.github/workflows/pureos_android_debug_build.yml'
       - 'README.md'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'android/PureOSLaunchCandidate/**'
-      - 'native/PureOSNativeRuntimeBootstrap/**'
-      - '.github/workflows/pureos_android_debug_build.yml'
 
 permissions:
   contents: read
 
 jobs:
   build-debug-apk:
-    name: Build PureOS v17.48 ARM64 native debug APK
+    name: Build PureOS v17.49 Samsung ARM64 clean-install APK
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -71,37 +63,40 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
         run: |
-          rm -rf ../../android/PureOSLaunchCandidate/app/src/main/jniLibs
+          rm -rf ../../android/PureOSLaunchCandidate/appv1749/src/main/jniLibs
           cargo ndk \
             --target arm64-v8a \
-            --output-dir ../../android/PureOSLaunchCandidate/app/src/main/jniLibs \
+            --output-dir ../../android/PureOSLaunchCandidate/appv1749/src/main/jniLibs \
             build --release
 
       - name: Verify ARM64 native library
         run: |
-          SO_FILE="android/PureOSLaunchCandidate/app/src/main/jniLibs/arm64-v8a/libpureos_native_runtime_bootstrap.so"
+          SO_FILE="android/PureOSLaunchCandidate/appv1749/src/main/jniLibs/arm64-v8a/libpureos_native_runtime_bootstrap.so"
           test -f "$SO_FILE"
           ls -lah "$SO_FILE"
           file "$SO_FILE"
-          sha256sum "$SO_FILE"
+          readelf -lW "$SO_FILE" | tee native_program_headers.txt
+          grep -q '0x4000' native_program_headers.txt
+          sha256sum "$SO_FILE" | tee native_library_sha256.txt
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
-      - name: Build debug APK
+      - name: Build clean-install debug APK
         working-directory: android/PureOSLaunchCandidate
-        run: gradle :app:clean :app:assembleDebug --stacktrace --warning-mode all
+        run: gradle :appv1749:clean :appv1749:assembleDebug --stacktrace --warning-mode all
 
-      - name: Verify APK and packaged ARM64 library
+      - name: Verify clean package and packaged ARM64 library
         run: |
-          APK_DIR="android/PureOSLaunchCandidate/app/build/outputs/apk/debug"
+          APK_DIR="android/PureOSLaunchCandidate/appv1749/build/outputs/apk/debug"
           APK_FILE="$(find "$APK_DIR" -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -n "$APK_FILE"
           test "$(stat -c%s "$APK_FILE")" -gt 100000
           unzip -l "$APK_FILE" | tee apk_contents.txt
           grep -q 'lib/arm64-v8a/libpureos_native_runtime_bootstrap.so' apk_contents.txt
+          strings "$APK_FILE" | grep -q 'com.pureos.mobilecore.s25.v1749'
           ls -lah "$APK_FILE"
           sha256sum "$APK_FILE" | tee apk_sha256.txt
 
@@ -113,23 +108,23 @@ jobs:
           cp native/PureOSNativeRuntimeBootstrap/Cargo.toml build-evidence/
           cp apk_contents.txt build-evidence/ 2>/dev/null || true
           cp apk_sha256.txt build-evidence/ 2>/dev/null || true
-          if [ -f android/PureOSLaunchCandidate/app/src/main/jniLibs/arm64-v8a/libpureos_native_runtime_bootstrap.so ]; then
-            sha256sum android/PureOSLaunchCandidate/app/src/main/jniLibs/arm64-v8a/libpureos_native_runtime_bootstrap.so > build-evidence/native_library_sha256.txt
-          fi
+          cp native_program_headers.txt build-evidence/ 2>/dev/null || true
+          cp native_library_sha256.txt build-evidence/ 2>/dev/null || true
+          printf '%s\n' 'package_id=com.pureos.mobilecore.s25.v1749' 'version=17.49' 'native_packaging=legacy_extract' > build-evidence/install_identity.txt
 
-      - name: Upload installable Android APK
+      - name: Upload clean-install Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: PureOS-v17.48-android-arm64-native-debug-apk
-          path: android/PureOSLaunchCandidate/app/build/outputs/apk/debug/*.apk
+          name: PureOS-v17.49-samsung-s25-arm64-clean-install-apk
+          path: android/PureOSLaunchCandidate/appv1749/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Upload Android native build evidence
+      - name: Upload Android clean-install build evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: PureOS-v17.48-android-arm64-native-build-evidence
+          name: PureOS-v17.49-samsung-s25-arm64-build-evidence
           path: build-evidence/**
           if-no-files-found: warn
           retention-days: 30
