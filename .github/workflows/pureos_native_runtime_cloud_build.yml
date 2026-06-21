@@ -4,7 +4,14 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - cloud/native-runtime-v17-39a
+    paths:
+      - 'native/PureOSNativeRuntimeBootstrap/**'
+      - '.github/workflows/pureos_native_runtime_cloud_build.yml'
+  pull_request:
+    branches:
+      - main
     paths:
       - 'native/PureOSNativeRuntimeBootstrap/**'
       - '.github/workflows/pureos_native_runtime_cloud_build.yml'
