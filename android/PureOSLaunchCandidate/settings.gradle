@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = 'PureOSMobileCore'
 include ':app'
+include ':appv1749'
