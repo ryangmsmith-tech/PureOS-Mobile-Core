@@ -1,0 +1,106 @@
+name: PureRenderIR v0.9 First Vulkan Frame
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - cloud/first-frame-v0-9
+    paths:
+      - 'native/PureRenderIRFirstFrame/**'
+      - '.github/workflows/purerenderir_first_frame.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'native/PureRenderIRFirstFrame/**'
+      - '.github/workflows/purerenderir_first_frame.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  first-frame:
+    name: Render verified offscreen Vulkan frame
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      XDG_RUNTIME_DIR: /tmp/pureos-xdg-runtime
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      WGPU_BACKEND: vulkan
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install Vulkan software adapter
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools libvulkan1
+          mkdir -p "$XDG_RUNTIME_DIR"
+          chmod 700 "$XDG_RUNTIME_DIR"
+          LVP_ICD="$(find /usr/share/vulkan/icd.d -type f -name 'lvp_icd*.json' -print -quit)"
+          test -n "$LVP_ICD"
+          echo "VK_ICD_FILENAMES=$LVP_ICD" >> "$GITHUB_ENV"
+          mkdir -p native/PureRenderIRFirstFrame/dist
+          VK_ICD_FILENAMES="$LVP_ICD" vulkaninfo --summary | tee native/PureRenderIRFirstFrame/dist/vulkaninfo_summary.txt
+
+      - name: Format Rust source in runner workspace
+        working-directory: native/PureRenderIRFirstFrame
+        run: cargo fmt --all
+
+      - name: Run Rust compiler and Clippy checks
+        working-directory: native/PureRenderIRFirstFrame
+        run: cargo clippy --all-targets
+
+      - name: Run geometry validation tests
+        working-directory: native/PureRenderIRFirstFrame
+        run: cargo test --all-targets --verbose
+
+      - name: Produce first native Vulkan offscreen frame
+        working-directory: native/PureRenderIRFirstFrame
+        run: cargo run --release -- assets/gold_ocean_city_crystal.pureir.json dist
+
+      - name: Verify frame and receipt
+        working-directory: native/PureRenderIRFirstFrame
+        run: |
+          test -s dist/gold_ocean_city_first_vulkan_frame.png
+          test -s dist/frame_receipt.json
+          test -s dist/adapter_report.json
+          file dist/gold_ocean_city_first_vulkan_frame.png
+          python3 - <<'PY'
+          import json
+          import struct
+          from pathlib import Path
+
+          png = Path('dist/gold_ocean_city_first_vulkan_frame.png').read_bytes()
+          assert png[:8] == b'\x89PNG\r\n\x1a\n'
+          width, height = struct.unpack('>II', png[16:24])
+          assert (width, height) == (512, 512), (width, height)
+
+          receipt = json.loads(Path('dist/frame_receipt.json').read_text())
+          assert receipt['validation'] == 'passed'
+          assert receipt['native_vulkan_offscreen_frame_produced'] is True
+          assert receipt['window_presented'] is False
+          assert receipt['non_background_pixels'] > 6553
+          assert receipt['object_id'] == 'GOC_PURE_RENDER_IR_CRYSTAL_MARKER_001'
+
+          adapter = json.loads(Path('dist/adapter_report.json').read_text())
+          assert adapter['backend'] == 'Vulkan'
+          print(json.dumps({'width': width, 'height': height, 'adapter': adapter}, indent=2))
+          PY
+          sha256sum dist/gold_ocean_city_first_vulkan_frame.png dist/frame_receipt.json dist/adapter_report.json > dist/SHA256SUMS.txt
+          cat dist/frame_receipt.json
+
+      - name: Upload first-frame artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PureRenderIR-v0.9-first-vulkan-frame
+          path: native/PureRenderIRFirstFrame/dist/**
+          if-no-files-found: error
+          retention-days: 30
