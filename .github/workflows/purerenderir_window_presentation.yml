@@ -1,0 +1,145 @@
+name: PureRenderIR v0.11 Window Presentation and Camera
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - cloud/window-camera-v0-11
+    paths:
+      - 'native/PureRenderIRWindowPresentation/**'
+      - 'native/PureRenderIRPlazaFrame/assets/**'
+      - '.github/workflows/purerenderir_window_presentation.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'native/PureRenderIRWindowPresentation/**'
+      - 'native/PureRenderIRPlazaFrame/assets/**'
+      - '.github/workflows/purerenderir_window_presentation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  window-presentation:
+    name: Present Gold Ocean City in native X11 window
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      XDG_RUNTIME_DIR: /tmp/pureos-xdg-runtime
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      WGPU_BACKEND: vulkan
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install X11 virtual display and Vulkan adapter
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            xvfb x11-utils \
+            libxkbcommon-x11-dev libx11-xcb-dev \
+            libxcb-shape0-dev libxcb-xfixes0-dev \
+            mesa-vulkan-drivers vulkan-tools libvulkan1
+          mkdir -p "$XDG_RUNTIME_DIR"
+          chmod 700 "$XDG_RUNTIME_DIR"
+          LVP_ICD="$(find /usr/share/vulkan/icd.d -type f -name 'lvp_icd*.json' -print -quit)"
+          test -n "$LVP_ICD"
+          echo "VK_ICD_FILENAMES=$LVP_ICD" >> "$GITHUB_ENV"
+          mkdir -p native/PureRenderIRWindowPresentation/dist
+          VK_ICD_FILENAMES="$LVP_ICD" vulkaninfo --summary | tee native/PureRenderIRWindowPresentation/dist/vulkaninfo_summary.txt
+
+      - name: Format source in runner workspace
+        working-directory: native/PureRenderIRWindowPresentation
+        run: cargo fmt --all
+
+      - name: Run compiler and Clippy checks
+        working-directory: native/PureRenderIRWindowPresentation
+        run: cargo clippy --all-targets
+
+      - name: Run embedded scene tests
+        working-directory: native/PureRenderIRWindowPresentation
+        run: cargo test --all-targets --verbose
+
+      - name: Build desktop presentation executable
+        working-directory: native/PureRenderIRWindowPresentation
+        run: cargo build --release --verbose
+
+      - name: Run X11 window and scripted camera smoke test
+        working-directory: native/PureRenderIRWindowPresentation
+        run: |
+          timeout 120s xvfb-run -a -s '-screen 0 1280x720x24' \
+            env PUREOS_AUTOMATION=1 \
+            cargo run --release -- dist
+          cp target/release/purerenderir-window-presentation dist/
+
+      - name: Verify window, surface, camera, and capture receipts
+        working-directory: native/PureRenderIRWindowPresentation
+        run: |
+          test -s dist/gold_ocean_city_window_presentation.png
+          test -s dist/window_presentation_receipt.json
+          test -s dist/adapter_report.json
+          test -x dist/purerenderir-window-presentation
+          file dist/gold_ocean_city_window_presentation.png
+          python3 - <<'PY'
+          import json
+          import struct
+          from pathlib import Path
+
+          png = Path('dist/gold_ocean_city_window_presentation.png').read_bytes()
+          assert png[:8] == b'\x89PNG\r\n\x1a\n'
+          width, height = struct.unpack('>II', png[16:24])
+          assert width >= 640 and height >= 360, (width, height)
+
+          receipt = json.loads(Path('dist/window_presentation_receipt.json').read_text())
+          assert receipt['validation'] == 'passed'
+          assert receipt['native_window_created'] is True
+          assert receipt['vulkan_surface_configured'] is True
+          assert receipt['surface_frame_presentation_produced'] is True
+          assert receipt['surface_frames_presented'] >= 12
+          assert receipt['scripted_camera_smoke_test_executed'] is True
+          assert receipt['interactive_keyboard_camera_controls_compiled'] is True
+          assert receipt['x11_virtual_display_used'] is True
+          assert receipt['physical_monitor_presented'] is False
+          assert receipt['android_window_presented'] is False
+          assert receipt['object_count'] == 9
+          assert receipt['draw_call_count_per_frame'] == 9
+          assert receipt['triangle_count_per_frame'] >= 20
+          assert receipt['capture_non_background_pixels'] > 100000
+          assert len(receipt['camera_positions']) >= 13
+          assert receipt['camera_start']['center'] != receipt['camera_end']['center']
+
+          adapter = json.loads(Path('dist/adapter_report.json').read_text())
+          assert adapter['backend'] == 'Vulkan'
+          assert adapter['software_adapter'] is True
+          print(json.dumps({
+              'window': [width, height],
+              'frames': receipt['surface_frames_presented'],
+              'camera_start': receipt['camera_start'],
+              'camera_end': receipt['camera_end'],
+              'objects': receipt['object_count'],
+              'adapter': adapter,
+          }, indent=2))
+          PY
+          sha256sum \
+            dist/gold_ocean_city_window_presentation.png \
+            dist/window_presentation_receipt.json \
+            dist/adapter_report.json \
+            dist/purerenderir-window-presentation \
+            > dist/SHA256SUMS.txt
+          cat dist/window_presentation_receipt.json
+
+      - name: Upload window-presentation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PureRenderIR-v0.11-window-presentation-camera
+          path: native/PureRenderIRWindowPresentation/dist/**
+          if-no-files-found: error
+          retention-days: 30
