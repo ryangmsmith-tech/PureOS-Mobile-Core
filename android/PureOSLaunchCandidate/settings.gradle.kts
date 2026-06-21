@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "PureOSLaunchCandidate"
 include(":app")
+include(":appv1749")
