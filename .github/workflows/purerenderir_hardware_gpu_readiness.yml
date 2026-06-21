@@ -1,0 +1,74 @@
+name: PureRenderIR v0.12 Hardware GPU Readiness
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - cloud/hardware-gpu-v0-12
+    paths:
+      - 'native/PureRenderIRHardwareQualification/**'
+      - '.github/workflows/purerenderir_hardware_gpu_readiness.yml'
+      - '.github/workflows/purerenderir_hardware_gpu_qualification.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'native/PureRenderIRHardwareQualification/**'
+      - '.github/workflows/purerenderir_hardware_gpu_readiness.yml'
+      - '.github/workflows/purerenderir_hardware_gpu_qualification.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    name: Validate hardware qualification tools
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Compile qualification scripts
+        working-directory: native/PureRenderIRHardwareQualification
+        run: python -m py_compile hardware_gpu_qualification.py test_hardware_gpu_qualification.py
+
+      - name: Run qualification unit tests
+        working-directory: native/PureRenderIRHardwareQualification
+        run: python -m unittest -v test_hardware_gpu_qualification.py
+
+      - name: Verify software ICD rejection
+        working-directory: native/PureRenderIRHardwareQualification
+        run: |
+          mkdir -p test-icd
+          printf '{}\n' > test-icd/lvp_icd.x86_64.json
+          if python hardware_gpu_qualification.py select-icd test-icd; then
+            echo 'Software-only ICD directory was incorrectly admitted.' >&2
+            exit 1
+          fi
+
+      - name: Build readiness packet
+        run: |
+          mkdir -p hardware-readiness
+          cp native/PureRenderIRHardwareQualification/hardware_gpu_qualification.py hardware-readiness/
+          cp native/PureRenderIRHardwareQualification/test_hardware_gpu_qualification.py hardware-readiness/
+          cp native/PureRenderIRHardwareQualification/README.md hardware-readiness/
+          cp .github/workflows/purerenderir_hardware_gpu_qualification.yml hardware-readiness/
+          python native/PureRenderIRHardwareQualification/hardware_gpu_qualification.py environment hardware-readiness/readiness_environment.json
+          sha256sum hardware-readiness/* > hardware-readiness/SHA256SUMS.txt
+          ls -lah hardware-readiness
+
+      - name: Upload hardware readiness packet
+        uses: actions/upload-artifact@v4
+        with:
+          name: PureRenderIR-v0.12-hardware-gpu-readiness
+          path: hardware-readiness/**
+          if-no-files-found: error
+          retention-days: 30
