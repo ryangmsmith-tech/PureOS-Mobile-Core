@@ -1,14 +1,14 @@
 plugins { id 'com.android.application' }
 
 android {
-    namespace 'com.pureos.appform.dev'
+    namespace 'com.pureos.appform.prism1746z'
     compileSdk 35
 
     defaultConfig {
-        applicationId 'com.pureos.appform.dev'
+        applicationId 'com.pureos.appform.prism1746z'
         minSdk 26
         targetSdk 35
-        versionCode 1747
-        versionName '17.46Y-debug'
+        versionCode 1746001
+        versionName '17.46Z-debug-phone-install-fix'
     }
 }
