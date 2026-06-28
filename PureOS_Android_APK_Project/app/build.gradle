@@ -1,0 +1,14 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.pureos.appform.dev'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.pureos.appform.dev'
+        minSdk 26
+        targetSdk 35
+        versionCode 1747
+        versionName '17.46Y-debug'
+    }
+}
