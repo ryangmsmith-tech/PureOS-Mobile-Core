@@ -1,0 +1,54 @@
+name: Build PureOS Debug APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - pureos-v17-46y-apk-build
+    paths:
+      - 'PureOS_Android_APK_Project/**'
+      - '.github/workflows/build-pureos-debug-apk.yml'
+
+jobs:
+  build-debug-apk:
+    name: Build PureOS Debug APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout PureOS project
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform/build tools
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build debug APK
+        working-directory: PureOS_Android_APK_Project
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Verify APK output
+        run: |
+          test -f PureOS_Android_APK_Project/app/build/outputs/apk/debug/app-debug.apk
+          ls -lh PureOS_Android_APK_Project/app/build/outputs/apk/debug/
+
+      - name: Upload PureOS APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pureos-debug-apk-v17-46Y
+          path: PureOS_Android_APK_Project/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
