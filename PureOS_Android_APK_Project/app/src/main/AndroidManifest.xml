@@ -6,6 +6,7 @@
         android:roundIcon="@drawable/ic_launcher_foreground"
         android:allowBackup="false"
         android:supportsRtl="true"
+        android:testOnly="false"
         android:usesCleartextTraffic="false"
         android:hardwareAccelerated="true">
         <activity
