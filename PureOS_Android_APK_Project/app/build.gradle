@@ -1,0 +1,14 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.pureos.appform.prism1746z'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.pureos.appform.prism1746z'
+        minSdk 26
+        targetSdk 35
+        versionCode 1746001
+        versionName '17.46Z-debug-phone-install-fix'
+    }
+}
