@@ -47,14 +47,20 @@ jobs:
         working-directory: PureOS_Android_APK_Project
         run: gradle --no-daemon :app:assembleDebug
 
+      - name: Rename phone-install APK
+        run: |
+          mkdir -p PureOS_Android_APK_Project/apk-output
+          cp PureOS_Android_APK_Project/app/build/outputs/apk/debug/app-debug.apk PureOS_Android_APK_Project/apk-output/PureOS-Prism-v17.46Z-phone-install-debug.apk
+
       - name: Verify APK output
         run: |
-          test -f PureOS_Android_APK_Project/app/build/outputs/apk/debug/app-debug.apk
-          ls -lh PureOS_Android_APK_Project/app/build/outputs/apk/debug/
+          test -f PureOS_Android_APK_Project/apk-output/PureOS-Prism-v17.46Z-phone-install-debug.apk
+          ls -lh PureOS_Android_APK_Project/apk-output/
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose PureOS_Android_APK_Project/apk-output/PureOS-Prism-v17.46Z-phone-install-debug.apk
 
       - name: Upload PureOS APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pureos-debug-apk-v17-46Y
-          path: PureOS_Android_APK_Project/app/build/outputs/apk/debug/*.apk
+          name: pureos-prism-v17-46Z-phone-install-debug-apk
+          path: PureOS_Android_APK_Project/apk-output/*.apk
           if-no-files-found: error
