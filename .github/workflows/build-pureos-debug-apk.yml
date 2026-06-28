@@ -2,6 +2,12 @@ name: Build PureOS Debug APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'PureOS_Android_APK_Project/**'
+      - '.github/workflows/build-pureos-debug-apk.yml'
   push:
     branches:
       - main
